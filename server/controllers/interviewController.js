@@ -470,6 +470,8 @@ const setupInterview = async (req, res) => {
     const { difficulty, subject, questionCount, timeLimit, inputType } = req.body;
     const userId = req.user.id;
 
+    console.log('DEBUG: setupInterview called with:', { difficulty, subject, questionCount, timeLimit, inputType, userId });
+
     // Validate inputs
     if (!difficulty || !subject || !questionCount || !timeLimit || !inputType) {
       return res.status(400).json({
@@ -486,7 +488,9 @@ const setupInterview = async (req, res) => {
     }
 
     // Get existing questions from database based on difficulty and subject
+    console.log('DEBUG: Getting questions for interview...');
     const questions = await QuestionModel.getQuestionsForInterview(difficulty, subject, questionCount);
+    console.log('DEBUG: Questions found:', questions.length);
 
     // Check if we have enough questions in the database
     if (questions.length === 0) {
@@ -504,10 +508,14 @@ const setupInterview = async (req, res) => {
     }
 
     // Create interview session
+    console.log('DEBUG: Creating interview with config...');
     const interview = await InterviewModel.createWithConfig(userId, difficulty, subject, questionCount, timeLimit, inputType);
+    console.log('DEBUG: Interview created:', interview.id);
 
     // Link existing questions to interview
+    console.log('DEBUG: Linking questions to interview...');
     await InterviewModel.linkQuestions(interview.id, questions.map(q => q.id));
+    console.log('DEBUG: Questions linked successfully');
 
     res.json({
       success: true,
@@ -528,11 +536,13 @@ const setupInterview = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error in setupInterview:', error);
+    console.error('❌ Error in setupInterview:', error);
+    console.error('❌ Error stack:', error.stack);
     res.status(500).json({
       success: false,
       error: 'Failed to setup interview',
-      details: error.message
+      details: error.message,
+      stack: error.stack
     });
   }
 };
