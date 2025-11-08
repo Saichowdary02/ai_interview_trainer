@@ -20,7 +20,7 @@ const chatbotRoutes = require('./routes/chatbot');
 const errorHandler = require('./middleware/errorHandler');
 
 // --------- CORS (safer) ----------
-const allowedOrigin = process.env.FRONTEND_URL || '*';
+const allowedOrigin = process.env.FRONTEND_URL || 'https://aiinterviewtrainer.vercel.app';
 const corsOptions = {
   origin: (origin, cb) => {
     console.log('CORS Check - Request origin:', origin);
