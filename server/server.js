@@ -47,10 +47,12 @@ const corsOptions = {
       return cb(null, true);
     }
     
-    // Protocol variations
-    if (originDomain === allowedDomain.replace(/^https?:\/\//, '') || 
-        allowedDomain === originDomain.replace(/^https?:\/\//, '')) {
-      console.log('CORS: Allowed - protocol variation');
+    // Check if origin matches allowed domain (handle protocol differences)
+    const originHost = origin.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    const allowedHost = allowedOrigin.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    
+    if (originHost === allowedHost) {
+      console.log('CORS: Allowed - host match');
       return cb(null, true);
     }
     
