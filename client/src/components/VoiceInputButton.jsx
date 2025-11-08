@@ -5,9 +5,20 @@ const VoiceInputButton = ({ onTextChange, disabled = false, mode = 'replace' }) 
   const [isSupported, setIsSupported] = useState(true);
   const [error, setError] = useState(null);
   const recognitionRef = useRef(null);
+  const [isSecureContext, setIsSecureContext] = useState(true);
 
-  // Check browser support for Web Speech API
+  // Check browser support for Web Speech API and secure context
   useEffect(() => {
+    // Check if running in a secure context (HTTPS or localhost)
+    const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    setIsSecureContext(isSecure);
+    
+    if (!isSecure) {
+      setIsSupported(false);
+      setError('Speech recognition requires a secure connection (HTTPS). Please access this site using HTTPS.');
+      return;
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       setIsSupported(false);
@@ -15,56 +26,78 @@ const VoiceInputButton = ({ onTextChange, disabled = false, mode = 'replace' }) 
     }
   }, []);
 
-  const startListening = () => {
-    if (!isSupported || disabled) return;
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (!recognitionRef.current) {
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'en-US';
-
-      recognitionRef.current.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        onTextChange(transcript, mode);
-        setIsListening(false);
-        setError(null);
-      };
-
-      recognitionRef.current.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-        
-        switch (event.error) {
-          case 'no-speech':
-            setError('No speech detected. Please try again.');
-            break;
-          case 'audio-capture':
-            setError('Microphone not accessible. Please check your microphone permissions.');
-            break;
-          case 'not-allowed':
-            setError('Microphone access denied. Please allow microphone access in your browser settings.');
-            break;
-          default:
-            setError('Speech recognition error. Please try again.');
-        }
-      };
-
-      recognitionRef.current.onend = () => {
-        setIsListening(false);
-      };
-    }
+  const startListening = async () => {
+    if (!isSupported || disabled || !isSecureContext) return;
 
     try {
+      // Check microphone permission first
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      
+      if (!recognitionRef.current) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = false;
+        recognitionRef.current.lang = 'en-US';
+
+        recognitionRef.current.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          onTextChange(transcript, mode);
+          setIsListening(false);
+          setError(null);
+        };
+
+        recognitionRef.current.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+          
+          switch (event.error) {
+            case 'no-speech':
+              setError('No speech detected. Please try again.');
+              break;
+            case 'audio-capture':
+              setError('Microphone not accessible. Please check your microphone permissions.');
+              break;
+            case 'not-allowed':
+              setError('Microphone access denied. Please allow microphone access in your browser settings.');
+              break;
+            case 'not-found':
+              setError('No microphone found. Please connect a microphone and try again.');
+              break;
+            case 'network':
+              setError('Network error. Please check your internet connection and try again.');
+              break;
+            default:
+              setError(`Speech recognition error: ${event.error}. Please try again.`);
+          }
+        };
+
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+
+        recognitionRef.current.onstart = () => {
+          console.log('Speech recognition started');
+        };
+      }
+
       setIsListening(true);
       setError(null);
       recognitionRef.current.start();
     } catch (err) {
       console.error('Failed to start speech recognition:', err);
       setIsListening(false);
-      setError('Failed to start speech recognition. Please try again.');
+      
+      if (err.name === 'NotAllowedError') {
+        setError('Microphone access denied. Please allow microphone access in your browser settings.');
+      } else if (err.name === 'NotFoundError') {
+        setError('No microphone found. Please connect a microphone and try again.');
+      } else if (err.name === 'NotSupportedError') {
+        setError('Microphone not supported in this browser. Please use Chrome for the best experience.');
+      } else {
+        setError('Failed to start speech recognition. Please try again.');
+      }
     }
   };
 

@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { interviewAPI, quizAPI } from '../api';
 
 const Dashboard = ({ user }) => {
   console.log('Dashboard component received user:', user);
   
-  const navigate = useNavigate();
   const [interviews, setInterviews] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,10 +73,6 @@ const Dashboard = ({ user }) => {
     fetchDashboardData();
   }, [user.id, fetchDashboardData]);
 
-  const viewInterview = (interviewId) => {
-    // For now, interviews are display-only like quizzes
-    // navigate(`/interview/result/${interviewId}`);
-  };
 
   const formatDateTime = (dateString) => {
     if (!dateString) return 'N/A';
