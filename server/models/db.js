@@ -1,16 +1,19 @@
 const { Pool } = require('pg');
 
-// Database configuration
-const config = {
-  user: 'postgres',
-  host: 'localhost',
-  database: 'ai_interview_trainer',
-  password: 'Sai@123456',
-  port: 5432,
-};
+// Database configuration - use environment variables
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  console.error('❌ DATABASE_URL is not set in environment variables');
+  process.exit(1);
+}
 
 // Create connection pool
-const pool = new Pool(config);
+const pool = new Pool({
+  connectionString,
+  // When using cloud Postgres (Neon) ensure TLS; accept self-signed if needed:
+  ssl: connectionString && connectionString.includes('sslmode=require') ? { rejectUnauthorized: false } : false,
+});
 
 // Test connection on startup
 pool.on('connect', () => {
