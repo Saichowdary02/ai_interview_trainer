@@ -34,26 +34,23 @@ const corsOptions = {
       return cb(null, true);
     }
     
-    // Extract domain from both URLs for comparison
-    const originDomain = origin.replace(/^https?:\/\//, '').replace(/\/$/, '');
-    const allowedDomain = allowedOrigin.replace(/^https?:\/\//, '').replace(/\/$/, '');
-    
-    console.log('CORS Check - Origin domain:', originDomain);
-    console.log('CORS Check - Allowed domain:', allowedDomain);
-    
-    // Exact match
-    if (originDomain === allowedDomain) {
-      console.log('CORS: Allowed - exact domain match');
+    // Simple domain comparison - check if origin matches allowed origin exactly
+    if (origin === allowedOrigin) {
+      console.log('CORS: Allowed - exact match');
       return cb(null, true);
     }
     
-    // Check if origin matches allowed domain (handle protocol differences)
-    const originHost = origin.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
-    const allowedHost = allowedOrigin.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
-    
-    if (originHost === allowedHost) {
-      console.log('CORS: Allowed - host match');
-      return cb(null, true);
+    // Check if the host/domain matches (handle protocol differences)
+    try {
+      const originUrl = new URL(origin);
+      const allowedUrl = new URL(allowedOrigin);
+      
+      if (originUrl.host === allowedUrl.host) {
+        console.log('CORS: Allowed - host match');
+        return cb(null, true);
+      }
+    } catch (error) {
+      console.log('CORS: URL parsing error:', error.message);
     }
     
     console.log('CORS: Rejected');
