@@ -27,15 +27,30 @@ const corsOptions = {
     console.log('CORS Check - Allowed origin:', allowedOrigin);
     
     if (!origin) return cb(null, true); // allow requests without origin (like health checks, Postman, curl)
-    if (allowedOrigin === '*' || origin === allowedOrigin) {
-      console.log('CORS: Allowed');
+    
+    // Allow all origins in development or if set to '*'
+    if (allowedOrigin === '*') {
+      console.log('CORS: Allowed - wildcard');
       return cb(null, true);
     }
     
-    // Allow both http and https versions
-    if (allowedOrigin && (origin === allowedOrigin.replace('https://', 'http://') || 
-                         origin === allowedOrigin.replace('http://', 'https://'))) {
-      console.log('CORS: Allowed with protocol variation');
+    // Extract domain from both URLs for comparison
+    const originDomain = origin.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    const allowedDomain = allowedOrigin.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    
+    console.log('CORS Check - Origin domain:', originDomain);
+    console.log('CORS Check - Allowed domain:', allowedDomain);
+    
+    // Exact match
+    if (originDomain === allowedDomain) {
+      console.log('CORS: Allowed - exact domain match');
+      return cb(null, true);
+    }
+    
+    // Protocol variations
+    if (originDomain === allowedDomain.replace(/^https?:\/\//, '') || 
+        allowedDomain === originDomain.replace(/^https?:\/\//, '')) {
+      console.log('CORS: Allowed - protocol variation');
       return cb(null, true);
     }
     
