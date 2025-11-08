@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { interviewAPI } from '../api';
@@ -15,6 +15,12 @@ const InterviewSession = ({ user }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(null);
+  const interviewRef = useRef(null);
+
+  // Update ref when interview changes
+  useEffect(() => {
+    interviewRef.current = interview;
+  }, [interview]);
 
   // Load interview session
   useEffect(() => {
@@ -83,12 +89,9 @@ const InterviewSession = ({ user }) => {
       position: 'top-right'
     });
     
-    // Pause timer at current time when user clicks submit (optimistic update)
-    if (!window.isAutoSubmitting) {
-      // Clear the timer interval to stop it from counting down
-      if (window.clearInterviewTimer) {
-        window.clearInterviewTimer();
-      }
+    // Pause timer when user clicks submit (clear the timer interval)
+    if (window.clearInterviewTimer) {
+      window.clearInterviewTimer();
     }
 
     try {
@@ -200,7 +203,7 @@ const InterviewSession = ({ user }) => {
 
 // Timer functionality
   useEffect(() => {
-    if (!interview || !config?.timeLimit || config.timeLimit === 'nolimit') {
+    if (!interviewRef.current || !config?.timeLimit || config.timeLimit === 'nolimit') {
       setTimeLeft(null);
       return;
     }
@@ -277,11 +280,12 @@ const InterviewSession = ({ user }) => {
       clearInterval(timer);
       window.clearInterviewTimer = null;
     };
-  }, [interview, config?.timeLimit, currentQuestionIndex, handleSubmitAnswer]);
+  }, [config?.timeLimit, currentQuestionIndex, handleSubmitAnswer]);
 
-  // Reset timer when question changes
+  // Reset timer when question changes - use a more specific dependency to prevent unnecessary resets
   useEffect(() => {
-    if (interview && config?.timeLimit && config.timeLimit !== 'nolimit') {
+    // Only reset timer when we have a valid interview and config, and we're not in the middle of submitting
+    if (interviewRef.current && config?.timeLimit && config.timeLimit !== 'nolimit' && !submitting) {
       let seconds = 0;
       switch (config.timeLimit) {
         case '30sec':
@@ -301,8 +305,9 @@ const InterviewSession = ({ user }) => {
           break;
       }
       setTimeLeft(seconds);
+      console.log('Timer reset for question:', currentQuestionIndex, 'Time:', seconds);
     }
-  }, [currentQuestionIndex, interview, config?.timeLimit]); // Added questionId to dependency array to ensure unique timer per question
+  }, [currentQuestionIndex, config?.timeLimit, submitting]);
 
   const handleAnswerChange = (e) => {
     setAnswers(prev => ({
