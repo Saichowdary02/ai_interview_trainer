@@ -76,7 +76,8 @@ const Dashboard = ({ user }) => {
   }, [user.id, fetchDashboardData]);
 
   const viewInterview = (interviewId) => {
-    navigate(`/interview/${interviewId}`);
+    // For now, interviews are display-only like quizzes
+    // navigate(`/interview/result/${interviewId}`);
   };
 
   const formatDateTime = (dateString) => {
@@ -233,8 +234,7 @@ const Dashboard = ({ user }) => {
                 {interviews.map((interview) => (
                   <div
                     key={interview.id}
-                    onClick={() => viewInterview(interview.id)}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-200"
+                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
                   >
                     <div className="flex items-center space-x-4">
                       <div className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColor(interview.difficulty)}`}>
@@ -253,9 +253,6 @@ const Dashboard = ({ user }) => {
                       <span className={`text-lg ${getScoreColor(interview.score)}`}>
                         {interview.score || 0}/10
                       </span>
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
                     </div>
                   </div>
                 ))}
