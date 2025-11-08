@@ -561,10 +561,10 @@ const getInterview = async (req, res) => {
       data: {
         id: interview.id,
         difficulty: interview.difficulty,
-        subject: interview.subject,
-        questionCount: interview.question_count,
-        timeLimit: interview.time_limit,
-        inputType: interview.input_type,
+        subject: interview.subject || null,
+        questionCount: interview.question_count || 5,
+        timeLimit: interview.time_limit || 'nolimit',
+        inputType: interview.input_type || 'text',
         startedAt: interview.started_at,
         questions: questions.map(q => ({
           id: q.id,

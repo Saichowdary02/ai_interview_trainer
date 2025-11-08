@@ -21,7 +21,8 @@ class InterviewModel {
   // Find interview by ID
   static async findById(id) {
     const query = `
-      SELECT i.*, u.name as user_name 
+      SELECT i.id, i.user_id, i.difficulty, i.subject, i.question_count, i.time_limit, i.input_type, 
+             i.started_at, i.finished_at, i.score, i.average_score, u.name as user_name 
       FROM interviews i
       JOIN users u ON i.user_id = u.id
       WHERE i.id = $1
@@ -73,11 +74,11 @@ class InterviewModel {
   // Create a new interview session with enhanced configuration
   static async createWithConfig(userId, difficulty, subject, questionCount, timeLimit, inputType) {
     const query = `
-      INSERT INTO interviews (user_id, difficulty)
-      VALUES ($1, $2)
-      RETURNING id, user_id, difficulty, started_at
+      INSERT INTO interviews (user_id, difficulty, subject, question_count, time_limit, input_type)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, user_id, difficulty, subject, question_count, time_limit, input_type, started_at
     `;
-    const values = [userId, difficulty];
+    const values = [userId, difficulty, subject, questionCount, timeLimit, inputType];
     
     try {
       const result = await db.query(query, values);
