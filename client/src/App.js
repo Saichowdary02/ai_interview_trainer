@@ -15,6 +15,7 @@ import QuizSetup from './pages/QuizSetup';
 import QuizPlayer from './pages/QuizPlayer';
 import QuizResults from './pages/QuizResults';
 import AskDoubt from './pages/AskDoubt';
+import ApiTestPage from './pages/ApiTestPage';
 import api from './api';
 
 function App() {
@@ -125,6 +126,9 @@ function App() {
             path="/ask-doubt"
             element={user ? <AskDoubt user={user} /> : <Navigate to="/login" replace />}
           />
+          
+          {/* API Test Route - Public */}
+          <Route path="/api-test" element={<ApiTestPage />} />
         </Routes>
       </main>
 
