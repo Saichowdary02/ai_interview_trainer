@@ -4,8 +4,7 @@ const { Pool } = require('pg');
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  console.error('❌ DATABASE_URL is not set in environment variables');
-  process.exit(1);
+  console.warn('⚠️ DATABASE_URL is not set. Database operations will fail.');
 }
 
 // Create connection pool
@@ -22,6 +21,11 @@ pool.on('connect', () => {
 
 pool.on('error', (err) => {
   console.error('❌ Unexpected error on idle client', err);
+  console.error('Error details:', {
+    code: err.code,
+    message: err.message,
+    stack: err.stack
+  });
 });
 
 // Export the pool
