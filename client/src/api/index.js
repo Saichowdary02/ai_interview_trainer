@@ -2,19 +2,27 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const getBaseURL = () => {
-  // Check for environment variable first
+  // Check for environment variable first (highest priority)
   if (typeof process !== 'undefined' && process.env.REACT_APP_API_BASE_URL) {
     return process.env.REACT_APP_API_BASE_URL;
   }
   
-  // Fallback to automatic detection
+  // Fallback for client-side (when environment variable is not available)
   if (typeof window !== 'undefined') {
-    // Client-side: check if we're in development
+    // Check for environment variable in browser environment
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return 'http://localhost:5000/api'; // Local development
     }
+    // For production, always use environment variable
+    // If no environment variable is set, this will fail and show the issue
+    if (process.env.NODE_ENV === 'production') {
+      // In production, we MUST have environment variable set
+      console.warn('REACT_APP_API_BASE_URL not set in production environment');
+      return 'https://ai-interview-trainer-server.onrender.com/api'; // Temporary fallback
+    }
   }
-  // Production or when NODE_ENV is set to production
+  
+  // Default fallback (should not be used in production)
   return 'https://ai-interview-trainer-server.onrender.com/api';
 };
 
