@@ -23,11 +23,28 @@ const errorHandler = require('./middleware/errorHandler');
 const allowedOrigin = process.env.FRONTEND_URL || '*';
 const corsOptions = {
   origin: (origin, cb) => {
+    console.log('CORS Check - Request origin:', origin);
+    console.log('CORS Check - Allowed origin:', allowedOrigin);
+    
     if (!origin) return cb(null, true); // allow requests without origin (like health checks, Postman, curl)
-    if (allowedOrigin === '*' || origin === allowedOrigin) return cb(null, true);
+    if (allowedOrigin === '*' || origin === allowedOrigin) {
+      console.log('CORS: Allowed');
+      return cb(null, true);
+    }
+    
+    // Allow both http and https versions
+    if (allowedOrigin && (origin === allowedOrigin.replace('https://', 'http://') || 
+                         origin === allowedOrigin.replace('http://', 'https://'))) {
+      console.log('CORS: Allowed with protocol variation');
+      return cb(null, true);
+    }
+    
+    console.log('CORS: Rejected');
     return cb(new Error('Not allowed by CORS'));
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
 app.use(cors(corsOptions));
 app.use(express.json());
