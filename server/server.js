@@ -26,7 +26,11 @@ const corsOptions = {
     console.log('CORS Check - Request origin:', origin);
     console.log('CORS Check - Allowed origin:', allowedOrigin);
     
-    if (!origin) return cb(null, true); // allow requests without origin (like health checks, Postman, curl)
+    // Allow requests without origin (like health checks, Postman, curl)
+    if (!origin) {
+      console.log('CORS: Allowed - no origin');
+      return cb(null, true);
+    }
     
     // Allow all origins in development or if set to '*'
     if (allowedOrigin === '*') {
@@ -34,31 +38,39 @@ const corsOptions = {
       return cb(null, true);
     }
     
-    // Simple domain comparison - check if origin matches allowed origin exactly
-    if (origin === allowedOrigin) {
-      console.log('CORS: Allowed - exact match');
-      return cb(null, true);
-    }
-    
-    // Check if the host/domain matches (handle protocol differences)
     try {
-      const originUrl = new URL(origin);
-      const allowedUrl = new URL(allowedOrigin);
+      // Parse both URLs to extract hostnames
+      const originHost = origin.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+      const allowedHost = allowedOrigin.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
       
-      if (originUrl.host === allowedUrl.host) {
-        console.log('CORS: Allowed - host match');
+      console.log('CORS Check - Origin host:', originHost);
+      console.log('CORS Check - Allowed host:', allowedHost);
+      
+      // Check for exact match or host match
+      if (origin === allowedOrigin || originHost === allowedHost) {
+        console.log('CORS: Allowed - match found');
         return cb(null, true);
       }
+      
+      // Additional check for subdomain matching (like vercel.app)
+      if (allowedHost === 'vercel.app' && originHost.endsWith('.vercel.app')) {
+        console.log('CORS: Allowed - vercel subdomain match');
+        return cb(null, true);
+      }
+      
+      console.log('CORS: Rejected - no match');
+      return cb(null, false); // Return false instead of error for better handling
     } catch (error) {
-      console.log('CORS: URL parsing error:', error.message);
+      console.log('CORS: Error in comparison:', error.message);
+      return cb(null, false);
     }
-    
-    console.log('CORS: Rejected');
-    return cb(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400, // 24 hours cache for preflight
+  optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
 app.use(express.json());
