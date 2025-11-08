@@ -23,13 +23,7 @@
   "redirects": [
     {
       "source": "/(.*)",
-      "destination": "https://$1",
-      "when": [
-        {
-          "field": "scheme",
-          "value": "http"
-        }
-      ]
+      "destination": "https://$1"
     }
   ],
   "headers": [
