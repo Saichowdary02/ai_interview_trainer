@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { interviewAPI, quizAPI } from '../api';
@@ -21,11 +21,7 @@ const Dashboard = ({ user }) => {
     bestScore: 0,
   });
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [user.id, fetchDashboardData]); // Add fetchDashboardData dependency
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       // Fetch both interviews and quizzes in parallel
       const [interviewsResponse, quizzesResponse] = await Promise.all([
@@ -73,7 +69,11 @@ const Dashboard = ({ user }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user.id]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [user.id, fetchDashboardData]);
 
   const viewInterview = (interviewId) => {
     navigate(`/interview/${interviewId}`);

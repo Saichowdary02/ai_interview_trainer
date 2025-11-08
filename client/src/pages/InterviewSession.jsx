@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { interviewAPI } from '../api';
@@ -9,149 +9,15 @@ const InterviewSession = ({ user }) => {
   const { interviewId } = useParams();
   const { config } = useLocation().state || {};
 
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [interview, setInterview] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(null);
 
-  // Load interview session
-  useEffect(() => {
-    const loadInterview = async () => {
-      try {
-        const res = await interviewAPI.getInterview(interviewId);
-        if (res.data.success) {
-          setInterview(res.data.data);
-          setLoading(false);
-        } else throw new Error();
-      } catch {
-        toast.error('Failed to load interview', {
-          position: 'top-right'
-        });
-        navigate('/dashboard');
-      }
-    };
-    loadInterview();
-  }, [interviewId, navigate]);
-
-// Timer functionality
-  useEffect(() => {
-    if (!interview || !config?.timeLimit || config.timeLimit === 'nolimit') {
-      setTimeLeft(null);
-      return;
-    }
-
-    // Convert time limit to seconds
-    let seconds = 0;
-    switch (config.timeLimit) {
-      case '30sec':
-        seconds = 30;
-        break;
-      case '45sec':
-        seconds = 45;
-        break;
-      case '1min':
-        seconds = 60;
-        break;
-      case '2min':
-        seconds = 120;
-        break;
-      default:
-        setTimeLeft(null);
-        return;
-    }
-
-    setTimeLeft(seconds);
-
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        console.log('Timer tick, time left:', prev);
-        // Show warning at 5 seconds remaining (only once)
-        if (prev === 5) {
-          console.log('Showing 5-second warning');
-          toast.error('Time is running out! Last 5 seconds remaining...', {
-            duration: 3000,
-            position: 'top-center',
-            id: 'interview-timer-warning', // Use unique ID to prevent duplicate toasts
-            preventDuplicate: true
-          });
-        }
-        
-        if (prev <= 1) {
-          console.log('Timer finished, triggering auto-submission');
-          clearInterval(timer);
-          toast.error('Time\'s up! Auto-submitting your answer...', {
-            duration: 2000,
-            position: 'top-center',
-            id: 'auto-submit' // Use unique ID to prevent duplicate toasts
-          });
-          
-          // Set global flag for auto-submit to allow empty answers
-          window.isAutoSubmitting = true;
-          
-          // IMMEDIATELY trigger auto-submission without setTimeout delay
-          // Use a microtask to ensure it runs after current render cycle
-          queueMicrotask(() => {
-            console.log('Auto-submission executed immediately');
-            handleSubmitAnswer();
-            // Reset the flag after submission
-            window.isAutoSubmitting = false;
-          });
-          
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    // Clear timer function to be used by submit/skip handlers
-    window.clearInterviewTimer = () => {
-      clearInterval(timer);
-    };
-
-    return () => {
-      clearInterval(timer);
-      window.clearInterviewTimer = null;
-    };
-  }, [interview, config?.timeLimit, currentQuestionIndex, handleSubmitAnswer]);
-
-  // Reset timer when question changes
-  useEffect(() => {
-    if (interview && config?.timeLimit && config.timeLimit !== 'nolimit') {
-      let seconds = 0;
-      switch (config.timeLimit) {
-        case '30sec':
-          seconds = 30;
-          break;
-        case '45sec':
-          seconds = 45;
-          break;
-        case '1min':
-          seconds = 60;
-          break;
-        case '2min':
-          seconds = 120;
-          break;
-        default:
-          seconds = 60; // fallback to 1 minute
-          break;
-      }
-      setTimeLeft(seconds);
-    }
-  }, [currentQuestionIndex, interview, config?.timeLimit]); // Added questionId to dependency array to ensure unique timer per question
-
-  const handleAnswerChange = (e) => {
-    setAnswers(prev => ({
-      ...prev,
-      [currentQuestionIndex]: {
-        ...prev[currentQuestionIndex],
-        text: e.target.value
-      }
-    }));
-  };
-
-  const handleSubmitAnswer = async () => {
+  // Submit answer function
+  const handleSubmitAnswer = useCallback(async () => {
     // Prevent multiple submissions
     if (submitting) {
       console.log('Already submitting, ignoring duplicate call');
@@ -162,12 +28,13 @@ const InterviewSession = ({ user }) => {
     
     // Get the latest answer state directly from the textarea if auto-submitting
     let currentAnswerText = '';
+    const currentAnswer = answers[currentQuestionIndex];
+    
     if (window.isAutoSubmitting) {
       const textarea = document.querySelector('textarea');
       currentAnswerText = textarea ? textarea.value : '';
       console.log('Auto-submit: Captured textarea value:', currentAnswerText);
     } else {
-      const currentAnswer = answers[currentQuestionIndex];
       currentAnswerText = currentAnswer?.text || '';
       console.log('Manual submit: Using state value:', currentAnswerText);
     }
@@ -306,9 +173,19 @@ const InterviewSession = ({ user }) => {
         window.isAutoSubmitting = false;
       }
     }
+  }, [submitting, answers, interview, navigate, interviewId, currentQuestionIndex]);
+
+  const handleAnswerChange = (e) => {
+    setAnswers(prev => ({
+      ...prev,
+      [currentQuestionIndex]: {
+        ...prev[currentQuestionIndex],
+        text: e.target.value
+      }
+    }));
   };
 
-const handleSkipQuestion = async () => {
+  const handleSkipQuestion = async () => {
     const currentQuestion = interview.questions[currentQuestionIndex];
     
     // Set submitting state to hide buttons during skip process
@@ -409,32 +286,135 @@ const handleSkipQuestion = async () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>
-      </div>
-    );
-  }
+  // Load interview session
+  useEffect(() => {
+    const loadInterview = async () => {
+      try {
+        const res = await interviewAPI.getInterview(interviewId);
+        if (res.data.success) {
+          setInterview(res.data.data);
+          setLoading(false);
+        } else throw new Error();
+      } catch {
+        toast.error('Failed to load interview', {
+          position: 'top-right'
+        });
+        navigate('/dashboard');
+      }
+    };
+    loadInterview();
+  }, [interviewId, navigate]);
 
-  if (!interview) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-center">
-        <h2 className="text-2xl font-bold mb-4">Interview not found</h2>
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
-        >
-          Go Back
-        </button>
-      </div>
-    );
-  }
+  // Timer functionality
+  useEffect(() => {
+    if (!interview || !config?.timeLimit || config.timeLimit === 'nolimit') {
+      setTimeLeft(null);
+      return;
+    }
 
+    // Convert time limit to seconds
+    let seconds = 0;
+    switch (config.timeLimit) {
+      case '30sec':
+        seconds = 30;
+        break;
+      case '45sec':
+        seconds = 45;
+        break;
+      case '1min':
+        seconds = 60;
+        break;
+      case '2min':
+        seconds = 120;
+        break;
+      default:
+        setTimeLeft(null);
+        return;
+    }
+
+    setTimeLeft(seconds);
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        console.log('Timer tick, time left:', prev);
+        // Show warning at 5 seconds remaining (only once)
+        if (prev === 5) {
+          console.log('Showing 5-second warning');
+          toast.error('Time is running out! Last 5 seconds remaining...', {
+            duration: 3000,
+            position: 'top-center',
+            id: 'interview-timer-warning', // Use unique ID to prevent duplicate toasts
+            preventDuplicate: true
+          });
+        }
+        
+        if (prev <= 1) {
+          console.log('Timer finished, triggering auto-submission');
+          clearInterval(timer);
+          toast.error('Time\'s up! Auto-submitting your answer...', {
+            duration: 2000,
+            position: 'top-center',
+            id: 'auto-submit' // Use unique ID to prevent duplicate toasts
+          });
+          
+          // Set global flag for auto-submit to allow empty answers
+          window.isAutoSubmitting = true;
+          
+          // IMMEDIATELY trigger auto-submission without setTimeout delay
+          // Use a microtask to ensure it runs after current render cycle
+          queueMicrotask(() => {
+            console.log('Auto-submission executed immediately');
+            handleSubmitAnswer();
+            // Reset the flag after submission
+            window.isAutoSubmitting = false;
+          });
+          
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Clear timer function to be used by submit/skip handlers
+    window.clearInterviewTimer = () => {
+      clearInterval(timer);
+    };
+
+    return () => {
+      clearInterval(timer);
+      window.clearInterviewTimer = null;
+    };
+  }, [interview, config?.timeLimit, currentQuestionIndex, handleSubmitAnswer]);
+
+  // Reset timer when question changes
+  useEffect(() => {
+    if (interview && config?.timeLimit && config.timeLimit !== 'nolimit') {
+      let seconds = 0;
+      switch (config.timeLimit) {
+        case '30sec':
+          seconds = 30;
+          break;
+        case '45sec':
+          seconds = 45;
+          break;
+        case '1min':
+          seconds = 60;
+          break;
+        case '2min':
+          seconds = 120;
+          break;
+        default:
+          seconds = 60; // fallback to 1 minute
+          break;
+      }
+      setTimeLeft(seconds);
+    }
+  }, [currentQuestionIndex, interview, config?.timeLimit]);
+
+  // Debug the current answer state
   const currentQuestion = interview.questions[currentQuestionIndex];
   const currentAnswer = answers[currentQuestionIndex] || {};
   
-  // Debug the current answer state
   console.log('Current answer for question', currentQuestionIndex, ':', currentAnswer);
 
   return (

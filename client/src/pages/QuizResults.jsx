@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { quizAPI } from "../api";
 
@@ -18,11 +18,8 @@ const QuizResults = () => {
   });
   const [expanded, setExpanded] = useState(new Set());
 
-  useEffect(() => {
-    fetchResults();
-  }, [quizId, fetchResults]);
-
-const fetchResults = async () => {
+  // Fetch quiz results
+  const fetchResults = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -72,7 +69,11 @@ const fetchResults = async () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [quizId]);
+
+  useEffect(() => {
+    fetchResults();
+  }, [fetchResults]);
 
   const toggleExpand = (qid) => {
     setExpanded((prev) => {

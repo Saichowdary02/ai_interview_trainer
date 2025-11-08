@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import toast from 'react-hot-toast';
 import { quizAPI } from "../api";
@@ -23,6 +23,49 @@ const QuizPlayer = () => {
       setTimeLeft(Number(state.timer) || 15);
     }
   }, [state]);
+
+  // Move to next question function (defined before it's used)
+  const moveToNextQuestion = useCallback(() => {
+    const nextIndex = currentQuestionIndex + 1;
+    
+    if (nextIndex >= questions.length) {
+      navigate(`/quiz/results/${quizId}`);
+    } else {
+      setCurrentQuestionIndex(nextIndex);
+      setSelectedOption("");
+      setTimeLeft(timerDuration);
+      setHurryUpToastShown(false); // Reset hurry up toast flag for next question
+    }
+  }, [currentQuestionIndex, questions.length, navigate, quizId, timerDuration]);
+
+  // Handle timer expiration - autosubmit marked answer or skip
+  const handleTimeUp = useCallback(async () => {
+    try {
+      const question = questions[currentQuestionIndex];
+      
+      if (selectedOption) {
+        // User has marked an answer - submit it
+        await quizAPI.submitAnswer(quizId, {
+          questionId: question.id,
+          selectedOption: selectedOption,
+        });
+        toast.success("Answer submitted automatically!");
+      } else {
+        // No answer marked - skip the question
+        await quizAPI.submitAnswer(quizId, {
+          questionId: question.id,
+          selectedOption: "skipped",
+        });
+        toast.info("Question skipped due to time limit!");
+      }
+    } catch (err) {
+      console.error("Failed to submit answer on timer expiration:", err);
+      // Still move to next question even if submission fails
+    }
+    
+    // Always move to next question after timer expires
+    moveToNextQuestion();
+  }, [quizId, questions, currentQuestionIndex, selectedOption, moveToNextQuestion]);
 
   // Start timer when question changes
   useEffect(() => {
@@ -142,49 +185,6 @@ const QuizPlayer = () => {
     }
   };
 
-  // Handle timer expiration - autosubmit marked answer or skip
-  const handleTimeUp = async () => {
-    try {
-      const question = questions[currentQuestionIndex];
-      
-      if (selectedOption) {
-        // User has marked an answer - submit it
-        await quizAPI.submitAnswer(quizId, {
-          questionId: question.id,
-          selectedOption: selectedOption,
-        });
-        toast.success("Answer submitted automatically!");
-      } else {
-        // No answer marked - skip the question
-        await quizAPI.submitAnswer(quizId, {
-          questionId: question.id,
-          selectedOption: "skipped",
-        });
-        toast.info("Question skipped due to time limit!");
-      }
-    } catch (err) {
-      console.error("Failed to submit answer on timer expiration:", err);
-      // Still move to next question even if submission fails
-    }
-    
-    // Always move to next question after timer expires
-    moveToNextQuestion();
-  };
-
-  // Move to next question
-  const moveToNextQuestion = () => {
-    const nextIndex = currentQuestionIndex + 1;
-    
-    if (nextIndex >= questions.length) {
-      navigate(`/quiz/results/${quizId}`);
-    } else {
-      setCurrentQuestionIndex(nextIndex);
-      setSelectedOption("");
-      setTimeLeft(timerDuration);
-      setHurryUpToastShown(false); // Reset hurry up toast flag for next question
-    }
-  };
-
   const currentQuestion = questions[currentQuestionIndex];
   const progress = questions.length > 0 
     ? ((currentQuestionIndex + 1) / questions.length) * 100 
@@ -275,13 +275,6 @@ const QuizPlayer = () => {
           </div>
 
           <div className="mt-8 flex justify-center gap-4">
-            <button
-              onClick={() => setSelectedOption("")}
-              disabled={!selectedOption}
-              className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              🔄 Clear
-            </button>
 
             <button
               onClick={handleSkip}
