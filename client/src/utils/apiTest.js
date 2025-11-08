@@ -1,7 +1,10 @@
 // API Test utility to check backend connectivity
 import axios from 'axios';
 
-const API_BASE_URL = 'https://ai-interview-trainer-server.onrender.com/api';
+// Get API URL from environment variables or use default
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 
+                     process.env.VITE_API_BASE_URL || 
+                     'https://ai-interview-trainer-server.onrender.com/api';
 
 const testAPI = {
   // Test basic connectivity
@@ -10,7 +13,7 @@ const testAPI = {
       const response = await axios.get(`${API_BASE_URL}/health`, {
         timeout: 5000,
         headers: {
-          'Origin': 'https://ai-interview-trainer-five.vercel.app'
+          'Origin': window.location.origin
         }
       });
       return { success: true, data: response.data };
