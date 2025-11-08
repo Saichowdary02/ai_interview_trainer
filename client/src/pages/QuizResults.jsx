@@ -54,14 +54,24 @@ const QuizResults = () => {
 
       const correctAnswers = normalized.filter((r) => r.is_correct).length;
       
-      // Calculate score based on correct answers to ensure accuracy
+      // Use the stored score from the database instead of calculating
+      // This ensures we show the actual score that was saved
+      const storedScore = payload[0]?.score || 0;
+      
+      // Also calculate for verification
       const calculatedScore = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+      
+      console.log('Score comparison:', {
+        storedScore,
+        calculatedScore,
+        difference: Math.abs(storedScore - calculatedScore)
+      });
 
       setResults(normalized);
       setSummary({
         totalQuestions,
         correctAnswers,
-        score: calculatedScore,
+        score: storedScore, // Use stored score
         subject,
         difficulty,
       });

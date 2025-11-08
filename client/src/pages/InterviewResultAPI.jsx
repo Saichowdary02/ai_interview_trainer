@@ -51,24 +51,7 @@ const InterviewResultAPI = ({ user }) => {
           throw new Error('Failed to load results');
         }
         
-      } catch (error) {
-        console.error('Error loading results:', error);
-        toast.error('Failed to load interview results');
-        navigate('/dashboard');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadResults();
-  }, [interviewId, navigate]);
-
-  // Fetch explanations separately to avoid dependency issues
-  useEffect(() => {
-    const loadExplanations = async () => {
-      if (!questions || questions.length === 0) return;
-      
-      try {
+        // Get explanations for unanswered questions
         const explanationsRes = await interviewAPI.getExplanations(interviewId);
         if (explanationsRes.data.success) {
           const explanationsData = explanationsRes.data.data.explanations || [];
@@ -90,14 +73,18 @@ const InterviewResultAPI = ({ user }) => {
           
           setExplanations(formattedExplanations);
         }
+        
       } catch (error) {
-        console.error('Error loading explanations:', error);
-        // Don't navigate away for explanation errors, just log them
+        console.error('Error loading results:', error);
+        toast.error('Failed to load interview results');
+        navigate('/dashboard');
+      } finally {
+        setLoading(false);
       }
     };
 
-    loadExplanations();
-  }, [interviewId, questions]);
+    loadResults();
+  }, [interviewId, navigate, questions]);
 
   const toggleExplanation = (questionIndex) => {
     setShowExplanation(prev => ({
@@ -196,7 +183,7 @@ const InterviewResultAPI = ({ user }) => {
                   </div>
                 </div>
 
-{/* AI Explanation */}
+                {/* AI Explanation */}
                 {showExplanation[index] && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     {/* For answered questions */}

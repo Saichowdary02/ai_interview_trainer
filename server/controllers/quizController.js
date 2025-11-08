@@ -75,15 +75,50 @@ const submitAnswer = async (req, res) => {
 // ✅ Finish quiz
 const finishQuiz = async (req, res) => {
   try {
+    console.log('=== FINISH QUIZ ENDPOINT CALLED ===');
     const quizId = parseInt(req.params.quizId);
+    console.log('Quiz ID:', quizId);
+    
+    // Get correct count
     const correctCount = await QuizAnswerModel.getCorrectAnswerCount(quizId);
+    console.log('Correct count:', correctCount);
+    
+    // Get quiz details
     const quiz = await QuizModel.findById(quizId);
-    if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found' });
-
+    console.log('Quiz found:', quiz ? 'YES' : 'NO');
+    if (!quiz) {
+      console.log('Quiz not found for ID:', quizId);
+      return res.status(404).json({ success: false, message: 'Quiz not found' });
+    }
+    
+    console.log('Quiz details:', {
+      id: quiz.id,
+      total_questions: quiz.total_questions,
+      score: quiz.score,
+      finished_at: quiz.finished_at
+    });
+    
+    // Calculate score
     const score = (correctCount / quiz.total_questions) * 100;
+    console.log('Score calculation:', {
+      correctCount,
+      totalQuestions: quiz.total_questions,
+      calculatedScore: score
+    });
+    
+    // Update quiz with result
+    console.log('Updating quiz with result...');
     const updatedQuiz = await QuizModel.updateWithResult(quizId, score);
+    console.log('Updated quiz:', {
+      id: updatedQuiz.id,
+      score: updatedQuiz.score,
+      finished_at: updatedQuiz.finished_at
+    });
+    
+    // Get results
     const results = await QuizModel.getQuizResults(quizId);
-
+    console.log('Results retrieved:', results.length, 'records');
+    
     res.json({
       success: true,
       message: 'Quiz finished successfully',
@@ -95,7 +130,10 @@ const finishQuiz = async (req, res) => {
         results
       }
     });
+    
+    console.log('=== FINISH QUIZ ENDPOINT COMPLETED ===');
   } catch (err) {
+    console.error('=== FINISH QUIZ ERROR ===', err);
     res.status(500).json({ success: false, message: 'Failed to finish quiz', error: err.message });
   }
 };

@@ -24,11 +24,32 @@ const QuizPlayer = () => {
     }
   }, [state]);
 
+  // Finish the quiz by calling the API
+  const finishQuiz = useCallback(async () => {
+    try {
+      console.log('Finishing quiz:', quizId);
+      const response = await quizAPI.finish(quizId);
+      
+      if (response.data.success) {
+        console.log('Quiz finished successfully:', response.data);
+        toast.success('Quiz completed! Calculating your results...');
+      } else {
+        console.error('Failed to finish quiz:', response.data.message);
+        toast.error('Failed to save quiz results. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error finishing quiz:', err);
+      toast.error('Failed to save quiz results. Please try again.');
+    }
+  }, [quizId]);
+
   // Move to next question function (defined before it's used)
-  const moveToNextQuestion = useCallback(() => {
+  const moveToNextQuestion = useCallback(async () => {
     const nextIndex = currentQuestionIndex + 1;
     
     if (nextIndex >= questions.length) {
+      // Quiz is complete - finish it first, then navigate to results
+      await finishQuiz();
       navigate(`/quiz/results/${quizId}`);
     } else {
       setCurrentQuestionIndex(nextIndex);
@@ -36,7 +57,7 @@ const QuizPlayer = () => {
       setTimeLeft(timerDuration);
       setHurryUpToastShown(false); // Reset hurry up toast flag for next question
     }
-  }, [currentQuestionIndex, questions.length, navigate, quizId, timerDuration]);
+  }, [currentQuestionIndex, questions.length, navigate, quizId, finishQuiz, timerDuration]);
 
   // Handle timer expiration - autosubmit marked answer or skip
   const handleTimeUp = useCallback(async () => {
@@ -95,10 +116,10 @@ const QuizPlayer = () => {
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [currentQuestionIndex, questions.length, handleTimeUp, hurryUpToastShown, timerDuration]);
+  }, [currentQuestionIndex, questions.length, handleTimeUp, hurryUpToastShown]);
 
   // Submit answer and move to next question
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!selectedOption) return;
 
     try {
@@ -113,10 +134,10 @@ const QuizPlayer = () => {
       toast.error("Failed to submit answer. Please try again.");
       console.error("Failed to submit answer:", err);
     }
-  };
+  }, [selectedOption, questions, currentQuestionIndex, quizId, moveToNextQuestion]);
 
   // Skip question and move to next
-  const handleSkip = async () => {
+  const handleSkip = useCallback(async () => {
     try {
       const question = questions[currentQuestionIndex];
       const token = localStorage.getItem('token');
@@ -183,7 +204,7 @@ const QuizPlayer = () => {
         toast.error("Failed to skip question: Invalid request configuration");
       }
     }
-  };
+  }, [questions, currentQuestionIndex, quizId, moveToNextQuestion]);
 
   const currentQuestion = questions[currentQuestionIndex];
   const progress = questions.length > 0 

@@ -15,9 +15,27 @@ const InterviewSession = ({ user }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(null);
-  const [error, setError] = useState(null);
 
-  // Submit answer function
+  // Load interview session
+  useEffect(() => {
+    const loadInterview = async () => {
+      try {
+        const res = await interviewAPI.getInterview(interviewId);
+        if (res.data.success) {
+          setInterview(res.data.data);
+          setLoading(false);
+        } else throw new Error();
+      } catch {
+        toast.error('Failed to load interview', {
+          position: 'top-right'
+        });
+        navigate('/dashboard');
+      }
+    };
+    loadInterview();
+  }, [interviewId, navigate]);
+
+  // Move handleSubmitAnswer to the top, before any useEffect that references it
   const handleSubmitAnswer = useCallback(async () => {
     // Prevent multiple submissions
     if (submitting) {
@@ -29,7 +47,7 @@ const InterviewSession = ({ user }) => {
     
     // Get the latest answer state directly from the textarea if auto-submitting
     let currentAnswerText = '';
-    const currentAnswer = answers[currentQuestionIndex];
+    const currentAnswer = answers[currentQuestionIndex] || {};
     
     if (window.isAutoSubmitting) {
       const textarea = document.querySelector('textarea');
@@ -91,7 +109,7 @@ const InterviewSession = ({ user }) => {
         
         console.log('API success response:', { score, feedback, ideal_answer });
         
-        // Update the answer with score and feedback - ensure we create a new object
+// Update the answer with score and feedback - ensure we create a new object
         const newAnswer = {
           text: currentAnswerText,
           score,
@@ -174,7 +192,113 @@ const InterviewSession = ({ user }) => {
         window.isAutoSubmitting = false;
       }
     }
-  }, [answers, currentQuestionIndex, interview, navigate, submitting, interviewId]);
+  }, [submitting, answers, currentQuestionIndex, interview, interviewId, navigate]);
+
+// Timer functionality
+  useEffect(() => {
+    if (!interview || !config?.timeLimit || config.timeLimit === 'nolimit') {
+      setTimeLeft(null);
+      return;
+    }
+
+    // Convert time limit to seconds
+    let seconds = 0;
+    switch (config.timeLimit) {
+      case '30sec':
+        seconds = 30;
+        break;
+      case '45sec':
+        seconds = 45;
+        break;
+      case '1min':
+        seconds = 60;
+        break;
+      case '2min':
+        seconds = 120;
+        break;
+      default:
+        setTimeLeft(null);
+        return;
+    }
+
+    setTimeLeft(seconds);
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        console.log('Timer tick, time left:', prev);
+        // Show warning at 5 seconds remaining (only once)
+        if (prev === 5) {
+          console.log('Showing 5-second warning');
+          toast.error('Time is running out! Last 5 seconds remaining...', {
+            duration: 3000,
+            position: 'top-center',
+            id: 'interview-timer-warning', // Use unique ID to prevent duplicate toasts
+            preventDuplicate: true
+          });
+        }
+        
+        if (prev <= 1) {
+          console.log('Timer finished, triggering auto-submission');
+          clearInterval(timer);
+          toast.error('Time\'s up! Auto-submitting your answer...', {
+            duration: 2000,
+            position: 'top-center',
+            id: 'auto-submit' // Use unique ID to prevent duplicate toasts
+          });
+          
+          // Set global flag for auto-submit to allow empty answers
+          window.isAutoSubmitting = true;
+          
+          // IMMEDIATELY trigger auto-submission without setTimeout delay
+          // Use a microtask to ensure it runs after current render cycle
+          queueMicrotask(() => {
+            console.log('Auto-submission executed immediately');
+            handleSubmitAnswer();
+            // Reset the flag after submission
+            window.isAutoSubmitting = false;
+          });
+          
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Clear timer function to be used by submit/skip handlers
+    window.clearInterviewTimer = () => {
+      clearInterval(timer);
+    };
+
+    return () => {
+      clearInterval(timer);
+      window.clearInterviewTimer = null;
+    };
+  }, [interview, config?.timeLimit, currentQuestionIndex, handleSubmitAnswer]);
+
+  // Reset timer when question changes
+  useEffect(() => {
+    if (interview && config?.timeLimit && config.timeLimit !== 'nolimit') {
+      let seconds = 0;
+      switch (config.timeLimit) {
+        case '30sec':
+          seconds = 30;
+          break;
+        case '45sec':
+          seconds = 45;
+          break;
+        case '1min':
+          seconds = 60;
+          break;
+        case '2min':
+          seconds = 120;
+          break;
+        default:
+          seconds = 60; // fallback to 1 minute
+          break;
+      }
+      setTimeLeft(seconds);
+    }
+  }, [currentQuestionIndex, interview, config?.timeLimit]); // Added questionId to dependency array to ensure unique timer per question
 
   const handleAnswerChange = (e) => {
     setAnswers(prev => ({
@@ -188,19 +312,6 @@ const InterviewSession = ({ user }) => {
 
   const handleSkipQuestion = useCallback(async () => {
     const currentQuestion = interview.questions[currentQuestionIndex];
-    
-    // Prevent multiple submissions
-    if (submitting) {
-      console.log('Already submitting, ignoring duplicate skip call');
-      return;
-    }
-    
-    // Check if answer is already submitted
-    const currentAnswer = answers[currentQuestionIndex];
-    if (currentAnswer?.submitted) {
-      console.log('Answer already submitted, ignoring skip');
-      return;
-    }
     
     // Set submitting state to hide buttons during skip process
     setSubmitting(true);
@@ -298,209 +409,34 @@ const InterviewSession = ({ user }) => {
     } finally {
       setSubmitting(false);
     }
-  }, [answers, currentQuestionIndex, interview, interviewId, navigate, submitting]);
+  }, [currentQuestionIndex, interview, interviewId, answers, navigate]);
 
-  // Load interview session
-  useEffect(() => {
-    const loadInterview = async () => {
-      try {
-        const res = await interviewAPI.getInterview(interviewId);
-        if (res.data.success) {
-          setInterview(res.data.data);
-          setLoading(false);
-        } else {
-          throw new Error(res.data.error || 'Failed to load interview');
-        }
-      } catch (error) {
-        console.error('Error loading interview:', error);
-        setError(error.response?.data?.error || 'Failed to load interview. Please try again.');
-        setLoading(false);
-        toast.error('Failed to load interview', {
-          position: 'top-right'
-        });
-        // Navigate back to dashboard after showing error
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000);
-      }
-    };
-    loadInterview();
-  }, [interviewId, navigate]);
-
-  // Timer functionality - separate timer setup and reset
-  useEffect(() => {
-    if (!interview || !config?.timeLimit || config.timeLimit === 'nolimit') {
-      setTimeLeft(null);
-      if (window.clearInterviewTimer) {
-        window.clearInterviewTimer();
-      }
-      return;
-    }
-
-    // Convert time limit to seconds
-    let seconds = 0;
-    switch (config.timeLimit) {
-      case '30sec':
-        seconds = 30;
-        break;
-      case '45sec':
-        seconds = 45;
-        break;
-      case '1min':
-        seconds = 60;
-        break;
-      case '2min':
-        seconds = 120;
-        break;
-      default:
-        setTimeLeft(null);
-        return;
-    }
-
-    setTimeLeft(seconds);
-
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        console.log('Timer tick, time left:', prev);
-        // Show warning at 5 seconds remaining (only once)
-        if (prev === 5) {
-          console.log('Showing 5-second warning');
-          toast.error('Time is running out! Last 5 seconds remaining...', {
-            duration: 3000,
-            position: 'top-center',
-            id: 'interview-timer-warning', // Use unique ID to prevent duplicate toasts
-            preventDuplicate: true
-          });
-        }
-        
-        if (prev <= 1) {
-          console.log('Timer finished, triggering auto-submission');
-          clearInterval(timer);
-          toast.error('Time\'s up! Auto-submitting your answer...', {
-            duration: 2000,
-            position: 'top-center',
-            id: 'auto-submit' // Use unique ID to prevent duplicate toasts
-          });
-          
-          // Set global flag for auto-submit to allow empty answers
-          window.isAutoSubmitting = true;
-          
-          // IMMEDIATELY trigger auto-submission without setTimeout delay
-          // Use a microtask to ensure it runs after current render cycle
-          queueMicrotask(() => {
-            console.log('Auto-submission executed immediately');
-            handleSubmitAnswer();
-            // Reset the flag after submission
-            window.isAutoSubmitting = false;
-          });
-          
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    // Clear timer function to be used by submit/skip handlers
-    window.clearInterviewTimer = () => {
-      clearInterval(timer);
-    };
-
-    return () => {
-      clearInterval(timer);
-      window.clearInterviewTimer = null;
-    };
-  }, [interview, config?.timeLimit, handleSubmitAnswer]); // Removed currentQuestionIndex from dependencies
-
-  // Reset timer when question changes - this should trigger timer reset
-  useEffect(() => {
-    if (interview && config?.timeLimit && config.timeLimit !== 'nolimit') {
-      let seconds = 0;
-      switch (config.timeLimit) {
-        case '30sec':
-          seconds = 30;
-          break;
-        case '45sec':
-          seconds = 45;
-          break;
-        case '1min':
-          seconds = 60;
-          break;
-        case '2min':
-          seconds = 120;
-          break;
-        default:
-          seconds = 60; // fallback to 1 minute
-          break;
-      }
-      
-      // Clear any existing timer before setting new time
-      if (window.clearInterviewTimer) {
-        window.clearInterviewTimer();
-      }
-      
-      setTimeLeft(seconds);
-      console.log('Timer reset to:', seconds, 'seconds for question:', currentQuestionIndex);
-    }
-  }, [currentQuestionIndex, interview, config?.timeLimit]);
-
-  // Early return for loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Loading interview session...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>
       </div>
     );
   }
 
-  // Early return for error state
-  if (error) {
+  if (!interview) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center bg-white rounded-lg shadow-lg p-8 max-w-md">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-red-600 text-2xl">⚠️</span>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Failed to Load Interview</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
-          >
-            Return to Dashboard
-          </button>
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center text-center">
+        <h2 className="text-2xl font-bold mb-4">Interview not found</h2>
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+        >
+          Go Back
+        </button>
       </div>
     );
   }
 
-  // Early return if interview data is not available
-  if (!interview || !interview.questions || interview.questions.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center bg-white rounded-lg shadow-lg p-8 max-w-md">
-          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-yellow-600 text-2xl">⚠️</span>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">No Interview Data</h2>
-          <p className="text-gray-600 mb-6">The interview session could not be loaded. Please try again.</p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
-          >
-            Return to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Debug the current answer state
   const currentQuestion = interview.questions[currentQuestionIndex];
   const currentAnswer = answers[currentQuestionIndex] || {};
   
+  // Debug the current answer state
   console.log('Current answer for question', currentQuestionIndex, ':', currentAnswer);
 
   return (
