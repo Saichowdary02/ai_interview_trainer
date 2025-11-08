@@ -1,8 +1,25 @@
 import axios from 'axios';
 
 // Create axios instance with base configuration
+const getBaseURL = () => {
+  // Check for environment variable first
+  if (typeof process !== 'undefined' && process.env.REACT_APP_API_BASE_URL) {
+    return process.env.REACT_APP_API_BASE_URL;
+  }
+  
+  // Fallback to automatic detection
+  if (typeof window !== 'undefined') {
+    // Client-side: check if we're in development
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:5000/api'; // Local development
+    }
+  }
+  // Production or when NODE_ENV is set to production
+  return 'https://ai-interview-trainer-server.onrender.com/api';
+};
+
 const api = axios.create({
-  baseURL: 'https://ai-interview-trainer-server.onrender.com/api',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },

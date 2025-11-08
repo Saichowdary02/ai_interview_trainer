@@ -98,6 +98,7 @@ class InterviewModel {
         const query = `
           INSERT INTO interview_questions (interview_id, question_id)
           VALUES ($1, $2)
+          ON CONFLICT DO NOTHING
         `;
         await client.query(query, [interviewId, questionId]);
       }
@@ -106,6 +107,8 @@ class InterviewModel {
       return true;
     } catch (error) {
       await client.query('ROLLBACK');
+      console.error('❌ Error in linkQuestions:', error.message);
+      console.error('❌ Full error:', error);
       throw new Error('Failed to link questions: ' + error.message);
     } finally {
       client.release();

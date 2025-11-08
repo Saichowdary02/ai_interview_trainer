@@ -512,10 +512,15 @@ const setupInterview = async (req, res) => {
     const interview = await InterviewModel.createWithConfig(userId, difficulty, subject, questionCount, timeLimit, inputType);
     console.log('DEBUG: Interview created:', interview.id);
 
-    // Link existing questions to interview
-    console.log('DEBUG: Linking questions to interview...');
+  // Link existing questions to interview
+  console.log('DEBUG: Linking questions to interview...');
+  try {
     await InterviewModel.linkQuestions(interview.id, questions.map(q => q.id));
     console.log('DEBUG: Questions linked successfully');
+  } catch (linkError) {
+    console.warn('⚠️ Warning: Could not link questions to interview:', linkError.message);
+    console.log('DEBUG: Proceeding without question linking...');
+  }
 
     res.json({
       success: true,

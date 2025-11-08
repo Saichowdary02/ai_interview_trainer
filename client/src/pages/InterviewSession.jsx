@@ -9,12 +9,13 @@ const InterviewSession = ({ user }) => {
   const { interviewId } = useParams();
   const { config } = useLocation().state || {};
 
-  const [, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [interview, setInterview] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(null);
+  const [error, setError] = useState(null);
 
   // Submit answer function
   const handleSubmitAnswer = useCallback(async () => {
@@ -185,8 +186,21 @@ const InterviewSession = ({ user }) => {
     }));
   };
 
-  const handleSkipQuestion = async () => {
+  const handleSkipQuestion = useCallback(async () => {
     const currentQuestion = interview.questions[currentQuestionIndex];
+    
+    // Prevent multiple submissions
+    if (submitting) {
+      console.log('Already submitting, ignoring duplicate skip call');
+      return;
+    }
+    
+    // Check if answer is already submitted
+    const currentAnswer = answers[currentQuestionIndex];
+    if (currentAnswer?.submitted) {
+      console.log('Answer already submitted, ignoring skip');
+      return;
+    }
     
     // Set submitting state to hide buttons during skip process
     setSubmitting(true);
@@ -284,7 +298,7 @@ const InterviewSession = ({ user }) => {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [answers, currentQuestionIndex, interview, interviewId, navigate, submitting]);
 
   // Load interview session
   useEffect(() => {
@@ -294,21 +308,32 @@ const InterviewSession = ({ user }) => {
         if (res.data.success) {
           setInterview(res.data.data);
           setLoading(false);
-        } else throw new Error();
-      } catch {
+        } else {
+          throw new Error(res.data.error || 'Failed to load interview');
+        }
+      } catch (error) {
+        console.error('Error loading interview:', error);
+        setError(error.response?.data?.error || 'Failed to load interview. Please try again.');
+        setLoading(false);
         toast.error('Failed to load interview', {
           position: 'top-right'
         });
-        navigate('/dashboard');
+        // Navigate back to dashboard after showing error
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
       }
     };
     loadInterview();
   }, [interviewId, navigate]);
 
-  // Timer functionality
+  // Timer functionality - separate timer setup and reset
   useEffect(() => {
     if (!interview || !config?.timeLimit || config.timeLimit === 'nolimit') {
       setTimeLeft(null);
+      if (window.clearInterviewTimer) {
+        window.clearInterviewTimer();
+      }
       return;
     }
 
@@ -384,9 +409,9 @@ const InterviewSession = ({ user }) => {
       clearInterval(timer);
       window.clearInterviewTimer = null;
     };
-  }, [interview, config?.timeLimit, currentQuestionIndex, handleSubmitAnswer]);
+  }, [interview, config?.timeLimit, handleSubmitAnswer]); // Removed currentQuestionIndex from dependencies
 
-  // Reset timer when question changes
+  // Reset timer when question changes - this should trigger timer reset
   useEffect(() => {
     if (interview && config?.timeLimit && config.timeLimit !== 'nolimit') {
       let seconds = 0;
@@ -407,9 +432,70 @@ const InterviewSession = ({ user }) => {
           seconds = 60; // fallback to 1 minute
           break;
       }
+      
+      // Clear any existing timer before setting new time
+      if (window.clearInterviewTimer) {
+        window.clearInterviewTimer();
+      }
+      
       setTimeLeft(seconds);
+      console.log('Timer reset to:', seconds, 'seconds for question:', currentQuestionIndex);
     }
   }, [currentQuestionIndex, interview, config?.timeLimit]);
+
+  // Early return for loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Loading interview session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Early return for error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center bg-white rounded-lg shadow-lg p-8 max-w-md">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-red-600 text-2xl">⚠️</span>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Failed to Load Interview</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Early return if interview data is not available
+  if (!interview || !interview.questions || interview.questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center bg-white rounded-lg shadow-lg p-8 max-w-md">
+          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-yellow-600 text-2xl">⚠️</span>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">No Interview Data</h2>
+          <p className="text-gray-600 mb-6">The interview session could not be loaded. Please try again.</p>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Debug the current answer state
   const currentQuestion = interview.questions[currentQuestionIndex];

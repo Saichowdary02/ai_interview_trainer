@@ -74,11 +74,22 @@ const InterviewSetup = ({ user }) => {
       if (response.data.success) {
         toast.success("Interview setup complete!");
 
-        navigate(`/interview/session/${response.data.data.interviewId}`, {
-          state: { 
-            config,
-            questions: response.data.data.questions 
+        // Ensure config is properly passed
+        const sessionState = {
+          config: {
+            difficulty: config.difficulty,
+            subject: config.subject,
+            questionCount: config.questionCount,
+            timeLimit: config.timeLimit,
+            inputType: "text"
           },
+          questions: response.data.data.questions 
+        };
+
+        console.log('Navigating to session with state:', sessionState);
+
+        navigate(`/interview/session/${response.data.data.interviewId}`, {
+          state: sessionState,
         });
       } else {
         toast.error("Failed to setup interview. Please try again.");

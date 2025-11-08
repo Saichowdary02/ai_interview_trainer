@@ -48,6 +48,52 @@ Before you begin, ensure you have the following installed:
 - **PostgreSQL** (local installation)
 - **OpenAI API Key** (for AI feedback)
 
+## 🚀 Running the Application
+
+### Local Development
+
+1. **Start the Backend Server:**
+   ```bash
+   cd server
+   npm start
+   ```
+   The backend will run on `http://localhost:5000`
+
+2. **Start the Frontend:**
+   ```bash
+   cd client
+   npm run dev
+   ```
+   The frontend will run on `http://localhost:3000`
+
+3. **Access the Application:**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:5000
+
+### Production Deployment
+
+The application automatically detects the environment and uses the correct API endpoints:
+
+- **Local Development**: Automatically uses `http://localhost:5000/api`
+- **Production**: Uses `https://ai-interview-trainer-server.onrender.com/api`
+
+### Environment Configuration
+
+The frontend automatically configures itself based on the environment:
+
+1. **Local Development**: 
+   - Automatically detects `localhost` or `127.0.0.1`
+   - Uses local backend at `http://localhost:5000/api`
+   - No additional configuration needed
+
+2. **Production**:
+   - Uses production backend URL
+   - No additional configuration needed
+
+3. **Custom Configuration**:
+   - Create `client/.env.local` file
+   - Set `REACT_APP_API_BASE_URL=your_custom_api_url`
+
 ## 🚀 Quick Start
 
 ### 1. Database Setup

@@ -7,7 +7,7 @@ const testAPI = {
   // Test basic connectivity
   async testHealth() {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/health`, {
+      const response = await axios.get(`${API_BASE_URL}/health`, {
         timeout: 5000,
         headers: {
           'Origin': 'https://ai-interview-trainer-five.vercel.app'
