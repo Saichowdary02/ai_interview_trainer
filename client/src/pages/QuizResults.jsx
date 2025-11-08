@@ -73,7 +73,7 @@ const QuizResults = () => {
 
   useEffect(() => {
     fetchResults();
-  }, [fetchResults]);
+  }, [fetchResults, quizId]);
 
   const toggleExpand = (qid) => {
     setExpanded((prev) => {

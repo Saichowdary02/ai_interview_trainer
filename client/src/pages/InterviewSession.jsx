@@ -90,7 +90,7 @@ const InterviewSession = ({ user }) => {
         
         console.log('API success response:', { score, feedback, ideal_answer });
         
-// Update the answer with score and feedback - ensure we create a new object
+        // Update the answer with score and feedback - ensure we create a new object
         const newAnswer = {
           text: currentAnswerText,
           score,
@@ -173,7 +173,7 @@ const InterviewSession = ({ user }) => {
         window.isAutoSubmitting = false;
       }
     }
-  }, [submitting, answers, interview, navigate, interviewId, currentQuestionIndex]);
+  }, [answers, currentQuestionIndex, interview, navigate, submitting, interviewId]);
 
   const handleAnswerChange = (e) => {
     setAnswers(prev => ({

@@ -95,7 +95,7 @@ const QuizPlayer = () => {
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [currentQuestionIndex, questions.length, handleTimeUp, hurryUpToastShown]);
+  }, [currentQuestionIndex, questions.length, handleTimeUp, hurryUpToastShown, timerDuration]);
 
   // Submit answer and move to next question
   const handleSubmit = async () => {
