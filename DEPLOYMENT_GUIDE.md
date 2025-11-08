@@ -23,7 +23,7 @@ DATABASE_URL=postgresql://neondb_owner:npg_mV4zfgXrqv6T@ep-empty-wildflower-ah7z
 JWT_SECRET=your-super-secret-jwt-key-make-this-very-long-and-random-unique
 
 # Frontend URL for CORS - Replace with your actual Vercel URL
-FRONTEND_URL=https://ai-interview-trainer.vercel.app
+FRONTEND_URL=https://ai-interview-trainer-five.vercel.app
 
 # OpenAI API Key (optional)
 OPENAI_API_KEY=your-openai-api-key-here

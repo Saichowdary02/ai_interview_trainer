@@ -8,7 +8,7 @@
 const axios = require('axios');
 
 const BACKEND_URL = 'https://ai-interview-trainer-server.onrender.com';
-const FRONTEND_URL = 'https://ai-interview-trainer.vercel.app';
+const FRONTEND_URL = 'https://ai-interview-trainer-five.vercel.app';
 
 async function testDeployment() {
   console.log('🚀 Testing AI Interview Trainer Deployment...\n');
