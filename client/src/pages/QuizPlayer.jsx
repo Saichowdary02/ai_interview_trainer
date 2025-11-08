@@ -52,7 +52,7 @@ const QuizPlayer = () => {
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [currentQuestionIndex, questions.length]);
+  }, [currentQuestionIndex, questions.length, handleTimeUp, hurryUpToastShown]);
 
   // Submit answer and move to next question
   const handleSubmit = async () => {
@@ -70,12 +70,6 @@ const QuizPlayer = () => {
       toast.error("Failed to submit answer. Please try again.");
       console.error("Failed to submit answer:", err);
     }
-  };
-
-  // Clear selected answer
-  const handleClear = () => {
-    setSelectedOption("");
-    toast.success("Answer cleared!");
   };
 
   // Skip question and move to next

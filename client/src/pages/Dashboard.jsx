@@ -23,7 +23,7 @@ const Dashboard = ({ user }) => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [user.id, fetchDashboardData]); // Add fetchDashboardData dependency
 
   const fetchDashboardData = async () => {
     try {
@@ -73,10 +73,6 @@ const Dashboard = ({ user }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-const startInterview = (difficulty) => {
-    navigate(`/interview/setup`, { state: { difficulty } });
   };
 
   const viewInterview = (interviewId) => {

@@ -36,7 +36,7 @@ const Signup = ({ onLogin }) => {
 
     try {
       const { confirmPassword, ...registerData } = formData;
-      const response = await authAPI.signup(registerData);
+      await authAPI.signup(registerData);
       
       toast.success('Account created successfully!', { duration: 3000 });
       

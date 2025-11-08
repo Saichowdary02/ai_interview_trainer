@@ -20,7 +20,7 @@ const QuizResults = () => {
 
   useEffect(() => {
     fetchResults();
-  }, [quizId]);
+  }, [quizId, fetchResults]);
 
 const fetchResults = async () => {
     try {

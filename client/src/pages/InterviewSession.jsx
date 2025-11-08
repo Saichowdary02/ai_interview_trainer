@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { interviewAPI } from '../api';
@@ -15,7 +15,6 @@ const InterviewSession = ({ user }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(null);
-  const handleSubmitAnswerRef = useRef();
 
   // Load interview session
   useEffect(() => {
@@ -115,7 +114,7 @@ const InterviewSession = ({ user }) => {
       clearInterval(timer);
       window.clearInterviewTimer = null;
     };
-  }, [interview, config?.timeLimit, currentQuestionIndex]);
+  }, [interview, config?.timeLimit, currentQuestionIndex, handleSubmitAnswer]);
 
   // Reset timer when question changes
   useEffect(() => {

@@ -84,7 +84,7 @@ const InterviewResultAPI = ({ user }) => {
     };
 
     loadResults();
-  }, [interviewId, navigate]);
+  }, [interviewId, navigate, questions]);
 
   const toggleExplanation = (questionIndex) => {
     setShowExplanation(prev => ({
