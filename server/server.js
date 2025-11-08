@@ -23,7 +23,7 @@ const errorHandler = require('./middleware/errorHandler');
 const allowedOrigin = process.env.FRONTEND_URL || '*';
 const corsOptions = {
   origin: (origin, cb) => {
-    if (!origin && process.env.NODE_ENV !== 'production') return cb(null, true); // allow Postman / curl in dev
+    if (!origin) return cb(null, true); // allow requests without origin (like health checks, Postman, curl)
     if (allowedOrigin === '*' || origin === allowedOrigin) return cb(null, true);
     return cb(new Error('Not allowed by CORS'));
   },
