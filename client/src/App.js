@@ -6,7 +6,6 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import HomePage from './pages/HomePage';
-import Interview from './pages/Interview';
 import InterviewSetup from './pages/InterviewSetup';
 import InterviewSession from './pages/InterviewSession';
 import InterviewResultAPI from './pages/InterviewResultAPI';
@@ -82,7 +81,7 @@ function App() {
           />
           <Route
             path="/interview"
-            element={user ? <Interview user={user} /> : <Navigate to="/login" replace />}
+            element={user ? <Navigate to="/interview/setup" replace /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/interview/setup"

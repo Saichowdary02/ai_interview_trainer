@@ -35,7 +35,6 @@ const QuizResults = () => {
       }
 
       const totalQuestions = Number(payload[0]?.total_questions || payload.length);
-      const score = Number(payload[0]?.score || 0);
       const subject = payload[0]?.subject || "Unknown";
       const difficulty = payload[0]?.difficulty || "Unknown";
 
@@ -54,12 +53,15 @@ const QuizResults = () => {
       normalized.sort((a, b) => (a.question_order || 0) - (b.question_order || 0));
 
       const correctAnswers = normalized.filter((r) => r.is_correct).length;
+      
+      // Calculate score based on correct answers to ensure accuracy
+      const calculatedScore = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
 
       setResults(normalized);
       setSummary({
         totalQuestions,
         correctAnswers,
-        score,
+        score: calculatedScore,
         subject,
         difficulty,
       });
