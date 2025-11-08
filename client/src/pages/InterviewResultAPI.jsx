@@ -61,7 +61,7 @@ const InterviewResultAPI = ({ user }) => {
           explanationsData.forEach((explanation, index) => {
             if (explanation && explanation.questionId) {
               // Find the question index for this explanation
-              const questionIndex = questions.findIndex(q => q.id === explanation.questionId);
+              const questionIndex = interviewRes.data.data.questions.findIndex(q => q.id === explanation.questionId);
               if (questionIndex !== -1) {
                 formattedExplanations[questionIndex] = {
                   explanation: explanation.explanation || explanation.text || 'No explanation available',
@@ -84,7 +84,7 @@ const InterviewResultAPI = ({ user }) => {
     };
 
     loadResults();
-  }, [interviewId, navigate, questions]);
+  }, [interviewId, navigate]);
 
   const toggleExplanation = (questionIndex) => {
     setShowExplanation(prev => ({

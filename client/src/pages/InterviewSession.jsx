@@ -153,22 +153,26 @@ const InterviewSession = ({ user }) => {
         
         if (isLastQuestion) {
           console.log('Handling last question navigation');
-          // Last question - navigate to results IMMEDIATELY (no delay)
-          const finalAnswers = {
-            ...answers,
-            [currentQuestionIndex]: newAnswer
-          };
-          console.log('Final answers being passed to results:', finalAnswers);
-          navigate(`/interview/result/${interviewId}`, {
-            state: { 
-              questions: interview.questions,
-              answers: finalAnswers
-            }
-          });
+          // Last question - navigate to results with a small delay to ensure state is updated
+          setTimeout(() => {
+            const finalAnswers = {
+              ...answers,
+              [currentQuestionIndex]: newAnswer
+            };
+            console.log('Final answers being passed to results:', finalAnswers);
+            navigate(`/interview/result/${interviewId}`, {
+              state: { 
+                questions: interview.questions,
+                answers: finalAnswers
+              }
+            });
+          }, 500); // 500ms delay to ensure state update
         } else {
           console.log('Moving to next question:', currentQuestionIndex + 1);
-          // Not the last question - move to next question INSTANTLY
-          setCurrentQuestionIndex(currentQuestionIndex + 1);
+          // Not the last question - move to next question with a small delay
+          setTimeout(() => {
+            setCurrentQuestionIndex(currentQuestionIndex + 1);
+          }, 500); // 500ms delay to ensure proper state transition
         }
       } else {
         // API returned unsuccessful response
@@ -379,17 +383,19 @@ const InterviewSession = ({ user }) => {
           });
         } else {
           // Last question - navigate to results with complete data
-          const finalAnswers = {
-            ...answers,
-            [currentQuestionIndex]: skippedAnswer
-          };
-          console.log('Final answers for skipped last question:', finalAnswers);
-          navigate(`/interview/result/${interviewId}`, { 
-            state: { 
-              questions: interview.questions,
-              answers: finalAnswers
-            } 
-          });
+          setTimeout(() => {
+            const finalAnswers = {
+              ...answers,
+              [currentQuestionIndex]: skippedAnswer
+            };
+            console.log('Final answers for skipped last question:', finalAnswers);
+            navigate(`/interview/result/${interviewId}`, { 
+              state: { 
+                questions: interview.questions,
+                answers: finalAnswers
+              } 
+            });
+          }, 500); // 500ms delay to ensure proper state transition
         }
       } else {
         // API returned unsuccessful response
