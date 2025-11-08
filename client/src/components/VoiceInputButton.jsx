@@ -10,7 +10,7 @@ const VoiceInputButton = ({ onTextChange, disabled = false, mode = 'replace' }) 
   // Check browser support for Web Speech API and secure context
   useEffect(() => {
     // Check if running in a secure context (HTTPS or localhost)
-    const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     setIsSecureContext(isSecure);
     
     if (!isSecure) {
