@@ -15,6 +15,7 @@ const InterviewSession = ({ user }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(null);
+  const timerRef = useRef(null);
   const interviewRef = useRef(null);
 
   // Update ref when interview changes
@@ -201,9 +202,9 @@ const InterviewSession = ({ user }) => {
     }
   }, [submitting, answers, currentQuestionIndex, interview, interviewId, navigate]);
 
-// Timer functionality
+  // Timer initialization - only depends on question changes and config
   useEffect(() => {
-    if (!interviewRef.current || !config?.timeLimit || config.timeLimit === 'nolimit') {
+    if (!interview || !config?.timeLimit || config.timeLimit === 'nolimit') {
       setTimeLeft(null);
       return;
     }
@@ -228,86 +229,102 @@ const InterviewSession = ({ user }) => {
         return;
     }
 
-    setTimeLeft(seconds);
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
 
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        console.log('Timer tick, time left:', prev);
-        // Show warning at 5 seconds remaining (only once)
-        if (prev === 5) {
-          console.log('Showing 5-second warning');
-          toast.error('Time is running out! Last 5 seconds remaining...', {
-            duration: 3000,
-            position: 'top-center',
-            id: 'interview-timer-warning', // Use unique ID to prevent duplicate toasts
-            preventDuplicate: true
-          });
+    // Reset timer when question changes
+    setTimeLeft(seconds);
+    console.log('Timer reset for question:', currentQuestionIndex, 'Time:', seconds);
+
+    // Store initial time in ref to avoid closure issues
+    const timerData = {
+      timeRemaining: seconds,
+      startTime: Date.now()
+    };
+
+    // Start new timer with closure that doesn't depend on React state at all
+    timerRef.current = setInterval(() => {
+      // Update the ref data
+      timerData.timeRemaining--;
+      
+      // Update React state - this is the only state update in the timer
+      setTimeLeft(timerData.timeRemaining);
+      
+      console.log('Timer tick, time left:', timerData.timeRemaining);
+      
+      // Show warning at 5 seconds remaining (only once)
+      if (timerData.timeRemaining === 5) {
+        console.log('Showing 5-second warning');
+        toast.error('Time is running out! Last 5 seconds remaining...', {
+          duration: 3000,
+          position: 'top-center',
+          id: 'interview-timer-warning', // Use unique ID to prevent duplicate toasts
+          preventDuplicate: true
+        });
+      }
+      
+      if (timerData.timeRemaining <= 1) {
+        console.log('Timer finished, triggering auto-submission');
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
         }
+        toast.error('Time\'s up! Auto-submitting your answer...', {
+          duration: 2000,
+          position: 'top-center',
+          id: 'auto-submit' // Use unique ID to prevent duplicate toasts
+        });
         
-        if (prev <= 1) {
-          console.log('Timer finished, triggering auto-submission');
-          clearInterval(timer);
-          toast.error('Time\'s up! Auto-submitting your answer...', {
-            duration: 2000,
-            position: 'top-center',
-            id: 'auto-submit' // Use unique ID to prevent duplicate toasts
-          });
-          
-          // Set global flag for auto-submit to allow empty answers
-          window.isAutoSubmitting = true;
-          
-          // IMMEDIATELY trigger auto-submission without setTimeout delay
-          // Use a microtask to ensure it runs after current render cycle
-          queueMicrotask(() => {
-            console.log('Auto-submission executed immediately');
-            handleSubmitAnswer();
-            // Reset the flag after submission
-            window.isAutoSubmitting = false;
-          });
-          
-          return 0;
-        }
-        return prev - 1;
-      });
+        // Set global flag for auto-submit to allow empty answers
+        window.isAutoSubmitting = true;
+        
+        // Use setTimeout to ensure this runs in next event loop
+        setTimeout(() => {
+          console.log('Auto-submission executed with setTimeout');
+          // Access handleSubmitAnswer through ref to avoid dependency
+          if (window.handleTimerSubmit) {
+            window.handleTimerSubmit();
+          }
+          // Reset the flag after submission
+          window.isAutoSubmitting = false;
+        }, 0);
+      }
     }, 1000);
 
     // Clear timer function to be used by submit/skip handlers
     window.clearInterviewTimer = () => {
-      clearInterval(timer);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     };
 
     return () => {
-      clearInterval(timer);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
       window.clearInterviewTimer = null;
     };
-  }, [config?.timeLimit, handleSubmitAnswer]);
+  }, [currentQuestionIndex, config?.timeLimit, interview]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Reset timer when question changes (but not when user is typing)
+  // Update global timer submit handler whenever handleSubmitAnswer changes
   useEffect(() => {
-    // Only reset timer when we have a valid interview and config, and we're not in the middle of submitting
-    if (interviewRef.current && config?.timeLimit && config.timeLimit !== 'nolimit' && !submitting) {
-      let seconds = 0;
-      switch (config.timeLimit) {
-        case '30sec':
-          seconds = 30;
-          break;
-        case '45sec':
-          seconds = 45;
-          break;
-        case '1min':
-          seconds = 60;
-          break;
-        case '2min':
-          seconds = 120;
-          break;
-        default:
-          seconds = 60; // fallback to 1 minute
-          break;
+    window.handleTimerSubmit = handleSubmitAnswer;
+  }, [handleSubmitAnswer]);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
       }
-      setTimeLeft(seconds);
-      console.log('Timer reset for question:', currentQuestionIndex, 'Time:', seconds);
-    }
-  }, [currentQuestionIndex, config?.timeLimit, submitting]);
+    };
+  }, []);
 
   const handleAnswerChange = (e) => {
     setAnswers(prev => ({
