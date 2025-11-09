@@ -35,45 +35,65 @@ const VoiceInputButton = ({ onTextChange, disabled = false, mode = 'replace' }) 
       
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       
+      if (!SpeechRecognition) {
+        setError('Speech recognition is not supported in this browser. Please use Chrome for the best experience.');
+        return;
+      }
+      
       if (!recognitionRef.current) {
         recognitionRef.current = new SpeechRecognition();
         recognitionRef.current.continuous = false;
         recognitionRef.current.interimResults = false;
         recognitionRef.current.lang = 'en-US';
+        recognitionRef.current.maxAlternatives = 1;
 
         recognitionRef.current.onresult = (event) => {
           const transcript = event.results[0][0].transcript;
+          console.log('Speech recognition result:', transcript);
           onTextChange(transcript, mode);
           setIsListening(false);
           setError(null);
         };
 
         recognitionRef.current.onerror = (event) => {
-          console.error('Speech recognition error:', event.error);
+          console.error('Speech recognition error:', event.error, event);
           setIsListening(false);
           
           switch (event.error) {
             case 'no-speech':
-              setError('No speech detected. Please try again.');
+              setError('No speech detected. Please speak clearly and try again.');
               break;
             case 'audio-capture':
-              setError('Microphone not accessible. Please check your microphone permissions.');
+              setError('Microphone not accessible. Please check your microphone permissions in browser settings.');
               break;
             case 'not-allowed':
+            case 'permission-denied':
               setError('Microphone access denied. Please allow microphone access in your browser settings.');
               break;
             case 'not-found':
               setError('No microphone found. Please connect a microphone and try again.');
               break;
             case 'network':
-              setError('Network error. Please check your internet connection and try again.');
+              setError('Speech recognition temporarily unavailable. This may be due to browser limitations in production environments. Try refreshing the page, using Chrome browser, or use manual input.');
+              console.warn('Speech Recognition API network error - this is a known limitation with some browsers in production environments');
+              break;
+            case 'service-not-allowed':
+              setError('Speech recognition service not available. Please check your browser settings or use manual input.');
+              break;
+            case 'aborted':
+              setError('Speech recognition was stopped. Please try again if needed.');
+              break;
+            case 'language-not-supported':
+              setError('Language not supported. Please try speaking in English.');
               break;
             default:
-              setError(`Speech recognition error: ${event.error}. Please try again.`);
+              setError(`Speech recognition error: ${event.error}. Please try again or use manual input.`);
+              console.log('Additional error details:', event);
           }
         };
 
         recognitionRef.current.onend = () => {
+          console.log('Speech recognition ended');
           setIsListening(false);
         };
 
@@ -82,21 +102,37 @@ const VoiceInputButton = ({ onTextChange, disabled = false, mode = 'replace' }) 
         };
       }
 
+      // Add a timeout to prevent hanging
+      const timeoutId = setTimeout(() => {
+        if (isListening && recognitionRef.current) {
+          console.warn('Speech recognition timeout - stopping to prevent hanging');
+          recognitionRef.current.stop();
+          setIsListening(false);
+          setError('Speech recognition timed out. Please try again.');
+        }
+      }, 10000); // 10 second timeout
+
       setIsListening(true);
       setError(null);
       recognitionRef.current.start();
+      
+      // Store timeout reference for cleanup
+      recognitionRef.current.timeoutId = timeoutId;
+      
     } catch (err) {
       console.error('Failed to start speech recognition:', err);
       setIsListening(false);
       
-      if (err.name === 'NotAllowedError') {
+      if (err.name === 'NotAllowedError' || err.message.includes('permission')) {
         setError('Microphone access denied. Please allow microphone access in your browser settings.');
-      } else if (err.name === 'NotFoundError') {
+      } else if (err.name === 'NotFoundError' || err.message.includes('device')) {
         setError('No microphone found. Please connect a microphone and try again.');
-      } else if (err.name === 'NotSupportedError') {
+      } else if (err.name === 'NotSupportedError' || err.message.includes('support')) {
         setError('Microphone not supported in this browser. Please use Chrome for the best experience.');
+      } else if (err.message.includes('HTTPS') || err.message.includes('secure')) {
+        setError('Speech recognition requires a secure connection. Please access this site using HTTPS.');
       } else {
-        setError('Failed to start speech recognition. Please try again.');
+        setError('Failed to start speech recognition. Please try again or use manual input.');
       }
     }
   };
@@ -121,6 +157,10 @@ const VoiceInputButton = ({ onTextChange, disabled = false, mode = 'replace' }) 
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
+        // Clear timeout if it exists
+        if (recognitionRef.current.timeoutId) {
+          clearTimeout(recognitionRef.current.timeoutId);
+        }
       }
     };
   }, []);

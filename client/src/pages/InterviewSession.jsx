@@ -280,9 +280,9 @@ const InterviewSession = ({ user }) => {
       clearInterval(timer);
       window.clearInterviewTimer = null;
     };
-  }, [config?.timeLimit, currentQuestionIndex, handleSubmitAnswer]);
+  }, [config?.timeLimit, handleSubmitAnswer]);
 
-  // Reset timer when question changes - use a more specific dependency to prevent unnecessary resets
+  // Reset timer when question changes (but not when user is typing)
   useEffect(() => {
     // Only reset timer when we have a valid interview and config, and we're not in the middle of submitting
     if (interviewRef.current && config?.timeLimit && config.timeLimit !== 'nolimit' && !submitting) {

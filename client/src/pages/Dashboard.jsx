@@ -219,74 +219,83 @@ const Dashboard = ({ user }) => {
 
       {/* Recent Activity */}
       {(interviews.length > 0 || quizzes.length > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Recent Interviews */}
-          {interviews.length > 0 && (
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Interviews</h2>
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {interviews.map((interview) => (
-                  <div
-                    key={interview.id}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColor(interview.difficulty)}`}>
-                        {interview.difficulty.charAt(0).toUpperCase() + interview.difficulty.slice(1)}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Recent Interviews */}
+            {interviews.length > 0 && (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Interviews</h2>
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {interviews.map((interview) => (
+                    <div
+                      key={interview.id}
+                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColor(interview.difficulty)}`}>
+                          {interview.difficulty.charAt(0).toUpperCase() + interview.difficulty.slice(1)}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            Interview #{interview.id}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {formatDateTime(interview.started_at)}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          Interview #{interview.id}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {formatDateTime(interview.started_at)}
-                        </p>
+                      <div className="flex items-center space-x-4">
+                        <span className={`text-lg ${getScoreColor(interview.score)}`}>
+                          {interview.score || 0}/10
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-4">
-                      <span className={`text-lg ${getScoreColor(interview.score)}`}>
-                        {interview.score || 0}/10
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Recent Quizzes */}
-          {quizzes.length > 0 && (
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Quizzes</h2>
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {quizzes.map((quiz) => (
-                  <div
-                    key={quiz.id}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                        {quiz.subject}
+            {/* Recent Quizzes */}
+            {quizzes.length > 0 && (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Quizzes</h2>
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {quizzes.map((quiz) => (
+                    <div
+                      key={quiz.id}
+                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                          {quiz.subject}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            Quiz #{quiz.id}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {formatDateTime(quiz.started_at)}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          Quiz #{quiz.id}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {formatDateTime(quiz.started_at)}
-                        </p>
+                      <div className="flex items-center space-x-4">
+                        <span className={`text-lg font-bold ${getScoreColor(quiz.score)}`}>
+                          {quiz.score || 0}/100
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-4">
-                      <span className={`text-lg font-bold ${getScoreColor(quiz.score)}`}>
-                        {quiz.score || 0}/100
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Timezone Note */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-sm text-yellow-800 text-center">
+              ⏰ <strong>Time Display Note:</strong> Times shown are in UTC. IST (Indian Standard Time) = UTC - 5:30 hours.
+            </p>
+          </div>
         </div>
       )}
 
